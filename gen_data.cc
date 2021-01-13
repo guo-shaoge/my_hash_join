@@ -10,9 +10,8 @@ void gen_data(int row_cnt, vector<pair<int, int>>& rows, double ndv) {
   vector<int> dist_vals(all_vals.begin(), all_vals.begin() + dist_val_cnt);
 
   for (int i = 0; i < row_cnt; ++i) {
-    int rand_val = rand();
-    int idx = rand_val % dist_vals.size();
-    rows.push_back({dist_vals[idx], rand_val});
+    int idx = i % dist_vals.size();
+    rows.push_back({dist_vals[idx], rand()});
   }
 }
 

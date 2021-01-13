@@ -17,7 +17,7 @@ void output_time(const T& start, const T& end, string desc) {
                           microseconds::period::den << " seconds" << endl;
 }
 
-void output_hash_table_info(const unordered_multimap<int, pair<int, int>, decltype(g_hasher), decltype(g_key_equal)>& h) {
+void output_hash_table_info(const MyHashMap& h) {
   cout << "bucket_count: " << h.bucket_count() << endl;
   cout << "load_factor: " << h.load_factor() << endl;
   for (int i = 0; i < h.bucket_count(); ++i) {
@@ -81,7 +81,7 @@ int split_rows(const vector<pair<int, int>>& rows,
 }
 
 int build_hash_table(const vector<pair<int, int>>& rows,
-                     unordered_multimap<int, pair<int, int>, decltype(g_hasher), decltype(g_key_equal)>& hash_table) {
+                     MyHashMap& hash_table) {
   int ret = 0;
   if (rows.empty()) {
     ret = -1;
@@ -94,7 +94,7 @@ int build_hash_table(const vector<pair<int, int>>& rows,
   return ret;
 }
 
-void do_hash_join_per_thread(const unordered_multimap<int, pair<int, int>, decltype(g_hasher), decltype(g_key_equal)>& hash_table,
+void do_hash_join_per_thread(const MyHashMap& hash_table,
                              const vector<pair<int, int>>& probe_rows,
                              const vector<int>& pos_vec,
                              const int thread_id,
@@ -138,7 +138,7 @@ void my_hash_join(int thread_cnt, int bucket_cnt, const string& fn1, const strin
   ASSERT_SUCC(split_rows(*outer_rows, thread_cnt, pos_vec));
 
   start = system_clock::now();
-  unordered_multimap<int, pair<int, int>, decltype(g_hasher), decltype(g_key_equal)> hash_table(bucket_cnt, g_hasher, g_key_equal);
+  MyHashMap hash_table(bucket_cnt, g_hasher, g_key_equal);
   ASSERT_SUCC(build_hash_table(*inner_rows, hash_table));
   end = system_clock::now();
   output_time(start, end, "build_hash_table");
