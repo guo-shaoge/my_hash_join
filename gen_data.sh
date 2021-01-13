@@ -1,4 +1,6 @@
 #!/bin/bash
+mkdir dataset
+make clean
 make -j
 
 ./gen_data 5000000 ./dataset/ndv_0_1 0.1
