@@ -94,22 +94,24 @@ int build_hash_table(const vector<pair<int, int>>& rows,
   return ret;
 }
 
-void do_hash_join_per_thread(const MyHashMap& hash_table,
-                             const vector<pair<int, int>>& probe_rows,
+void do_hash_join_per_thread(const MyHashMap* const hash_table,
+                             const vector<pair<int, int>>* const probe_rows,
                              const vector<int>& pos_vec,
                              const int thread_id,
                              const OtherCondFunc& other_cond_func,
                              promise<int>&& res_promise) {
   int count_res = 0;
   assert(thread_id + 1 <= pos_vec.size());
+  assert(NULL != hash_table);
+  assert(NULL != probe_rows);
 
   int pos_beg = pos_vec[thread_id];
   int pos_end = pos_vec[thread_id + 1];
-  assert(pos_end > pos_beg && pos_end <= probe_rows.size());
+  assert(pos_end > pos_beg && pos_beg < probe_rows->size() && pos_end <= probe_rows->size());
 
   for (int i = pos_beg; i < pos_end; ++i) {
-    const pair<int, int>& row = probe_rows[i];
-    auto range = hash_table.equal_range(row.first);
+    const pair<int, int>& row = (*probe_rows)[i];
+    auto range = hash_table->equal_range(row.first);
     for (auto it = range.first; it != range.second; ++it) {
       if (other_cond_func(row, it->second)) {
         ++count_res;
@@ -122,28 +124,29 @@ void do_hash_join_per_thread(const MyHashMap& hash_table,
 void my_hash_join(int thread_cnt, int bucket_cnt, const string& fn1, const string& fn2,
                   int& count_res) {
   int ret = 0;
-  vector<pair<int, int>> rows1;
-  vector<pair<int, int>> rows2;
+  vector<pair<int, int>>* rows1 = new vector<pair<int, int>>();
+  vector<pair<int, int>>* rows2 = new vector<pair<int, int>>();
 
   auto start = system_clock::now();
-  ASSERT_SUCC(scan_file(fn1, rows1));
-  ASSERT_SUCC(scan_file(fn2, rows2));
+  ASSERT_SUCC(scan_file(fn1, *rows1));
+  ASSERT_SUCC(scan_file(fn2, *rows2));
   auto end = system_clock::now();
   output_time(start, end, "scan_file");
 
-  vector<pair<int, int>>* outer_rows = &rows1;
-  vector<pair<int, int>>* inner_rows = &rows2;
+  vector<pair<int, int>>* outer_rows = rows1;
+  vector<pair<int, int>>* inner_rows = rows2;
 
   vector<int> pos_vec;
   ASSERT_SUCC(split_rows(*outer_rows, thread_cnt, pos_vec));
 
   start = system_clock::now();
-  MyHashMap hash_table(bucket_cnt, g_hasher, g_key_equal);
-  ASSERT_SUCC(build_hash_table(*inner_rows, hash_table));
+  MyHashMap* hash_table = new MyHashMap(bucket_cnt, g_hasher, g_key_equal);
+  assert(NULL != hash_table);
+  ASSERT_SUCC(build_hash_table(*inner_rows, *hash_table));
   end = system_clock::now();
   output_time(start, end, "build_hash_table");
 #ifdef DEBUG_HASH_TBL
-  output_hash_table_info(hash_table);
+  output_hash_table_info(*hash_table);
 #endif
 
   vector<thread> threads;
@@ -157,11 +160,15 @@ void my_hash_join(int thread_cnt, int bucket_cnt, const string& fn1, const strin
   for (int i = 0; i < thread_cnt; ++i) {
     threads.push_back(std::thread(do_hash_join_per_thread, 
                                   hash_table,
-                                  *outer_rows,
+                                  outer_rows,
                                   pos_vec,
                                   i,
                                   greater_expression,
                                   std::move(count_pro_vec[i])));
+  }
+
+  for (int i = 0; i < thread_cnt; ++i) {
+    threads[i].join();
   }
 
   count_res = 0;
@@ -171,9 +178,6 @@ void my_hash_join(int thread_cnt, int bucket_cnt, const string& fn1, const strin
     count_res += tmp;
   }
 
-  for (int i = 0; i < thread_cnt; ++i) {
-    threads[i].join();
-  }
   end = system_clock::now();
   output_time(start, end, "do_hash_join_per_thread and join all thread");
 }

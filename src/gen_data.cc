@@ -2,9 +2,18 @@
 #include <random>
 using namespace std;
 
+void shuffle_vec(vector<int>& vals) {
+  srand(time(0));
+  for (int i = vals.size() - 1; i >= 0; --i) {
+    int idx = rand() % vals.size();
+    std::swap(vals[idx], vals[i]);
+  }
+}
+
 void gen_data(int row_cnt, vector<pair<int, int>>& rows, double ndv) {
   vector<int> all_vals(row_cnt, 0);
   std::iota(all_vals.begin(), all_vals.end(), 0);
+  shuffle_vec(all_vals);
 
   int dist_val_cnt = row_cnt * ndv;
   vector<int> dist_vals(all_vals.begin(), all_vals.begin() + dist_val_cnt);
