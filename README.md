@@ -1,7 +1,6 @@
 ## 实现逻辑
 采用多线程模型。逻辑如下：
 
-主线程工作：
 1. 读取两个csv文件，将所有内容放入内存，得到inner_table_rows/outer_table_rows
 2. 将outer_table_rows数组按照线程数均分，每个线程相同大小的workload
 3. 根据inner_table_rows数组构造hash表。这里使用C++中unordered_multimap
