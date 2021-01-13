@@ -11,10 +11,11 @@
 1到3，都是由主线程完成。第4步由多个线程完成，各个线程会根据自己的workload划分，从hash表中进行查找
 
 ## 如何执行
-  make
-  ./scripts/gen_data.sh
-  ./scripts/perf.sh
-  ./scripts/test_ndv.sh
+
+    make
+    ./scripts/gen_data.sh
+    ./scripts/perf.sh
+    ./scripts/test_ndv.sh
 
 ## 测试
 ### 正确性
